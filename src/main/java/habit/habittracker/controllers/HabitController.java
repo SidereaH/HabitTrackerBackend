@@ -1,5 +1,6 @@
 package habit.habittracker.controllers;
 
+import habit.habittracker.dto.HabitDTO;
 import habit.habittracker.models.Habit;
 import habit.habittracker.services.HabitService;
 import org.springframework.http.ResponseEntity;
@@ -16,18 +17,19 @@ public class HabitController {
         this.habitService = habitService;
     }
 
+
     @GetMapping
-    public List<Habit> getAllHabits() {
+    public List<HabitDTO> getAllHabits() {
         return habitService.getAllHabits();
     }
 
     @PostMapping
-    public Habit createHabit(@RequestBody Habit habit) {
+    public HabitDTO createHabit(@RequestBody Habit habit) {
         return habitService.addHabit(habit);
     }
 
     @PutMapping("/{id}")
-    public Habit updateHabit(@PathVariable Long id, @RequestBody Habit habit) {
+    public HabitDTO updateHabit(@PathVariable Long id, @RequestBody Habit habit) {
         return habitService.updateHabit(id, habit);
     }
 
@@ -38,7 +40,7 @@ public class HabitController {
     }
 
     @PostMapping("/{id}/done")
-    public Habit markHabitDone(@PathVariable Long id) {
+    public HabitDTO markHabitDone(@PathVariable Long id) {
         return habitService.markHabitDone(id);
     }
 }

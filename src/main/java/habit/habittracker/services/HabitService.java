@@ -1,11 +1,13 @@
 package habit.habittracker.services;
 
+import habit.habittracker.dto.HabitDTO;
 import habit.habittracker.models.Habit;
 import habit.habittracker.repositories.HabitRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class HabitService {
@@ -15,15 +17,17 @@ public class HabitService {
         this.habitRepository = habitRepository;
     }
 
-    public List<Habit> getAllHabits() {
-        return habitRepository.findAll();
+    public List<HabitDTO> getAllHabits() {
+        return habitRepository.findAll().stream()
+                .map(HabitDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
-    public Habit addHabit(Habit habit) {
-        return habitRepository.save(habit);
+    public HabitDTO addHabit(Habit habit) {
+        return HabitDTO.fromEntity(habitRepository.save(habit));
     }
 
-    public Habit updateHabit(Long id, Habit habitDetails) {
+    public HabitDTO updateHabit(Long id, Habit habitDetails) {
         Habit habit = habitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Habit not found: " + id));
 
@@ -31,7 +35,7 @@ public class HabitService {
         habit.setDescription(habitDetails.getDescription());
         habit.setFrequency(habitDetails.getFrequency());
 
-        return habitRepository.save(habit);
+        return HabitDTO.fromEntity(habitRepository.save(habit));
     }
 
     public void deleteHabit(Long id) {
@@ -41,12 +45,12 @@ public class HabitService {
         habitRepository.deleteById(id);
     }
 
-    public Habit markHabitDone(Long id) {
+    public HabitDTO markHabitDone(Long id) {
         Habit habit = habitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Habit not found: " + id));
 
         habit.getCompletedDates().add(LocalDate.now());
 
-        return habitRepository.save(habit);
+        return HabitDTO.fromEntity(habitRepository.save(habit));
     }
 }
