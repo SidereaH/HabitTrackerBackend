@@ -52,7 +52,7 @@ class HabitServiceUnitTest {
         when(habitRepository.save(habitToSave)).thenReturn(savedHabit);
 
         // when
-        HabitDTO result = habitService.addHabit(habitToSave);
+        HabitDTO result = habitService.addHabit(HabitDTO.fromEntity(habitToSave));
 
         // then
         assertNotNull(result.getId());

@@ -41,7 +41,7 @@ class HabitHybridTest {
         habit.setDescription("Test Description");
         habit.setFrequency(1);
 
-        HabitDTO result = habitController.createHabit(habit);
+        HabitDTO result = habitController.createHabit(HabitDTO.fromEntity(habit));
 
         // then
         assertNotNull(result.getId());

@@ -53,7 +53,7 @@ class HabitControllerLayerTest {
         Habit habitToCreate = new Habit(null, "Reading", "Read books", 1, null, List.of());
         HabitDTO createdHabit = HabitDTO.fromEntity(new Habit(1L, "Reading", "Read books", 1, null, List.of()));
 
-        when(habitService.addHabit(any(Habit.class))).thenReturn(createdHabit);
+        when(habitService.addHabit(any(HabitDTO.class))).thenReturn(createdHabit);
 
         // when & then
         mockMvc.perform(post("/habits")

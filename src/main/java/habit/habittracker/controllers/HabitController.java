@@ -24,7 +24,7 @@ public class HabitController {
     }
 
     @PostMapping
-    public HabitDTO createHabit(@RequestBody Habit habit) {
+    public HabitDTO createHabit(@RequestBody HabitDTO habit) {
         return habitService.addHabit(habit);
     }
 

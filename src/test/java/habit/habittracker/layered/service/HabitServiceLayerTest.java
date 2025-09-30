@@ -38,7 +38,7 @@ class HabitServiceLayerTest {
         habit.setFrequency(1);
 
         // when
-        HabitDTO result = habitService.addHabit(habit);
+        HabitDTO result = habitService.addHabit(HabitDTO.fromEntity(habit));
 
         // then
         assertNotNull(result.getId());

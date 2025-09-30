@@ -23,8 +23,8 @@ public class HabitService {
                 .collect(Collectors.toList());
     }
 
-    public HabitDTO addHabit(Habit habit) {
-        return HabitDTO.fromEntity(habitRepository.save(habit));
+    public HabitDTO addHabit(HabitDTO habit) {
+        return HabitDTO.fromEntity(habitRepository.save(Habit.fromDto(habit)));
     }
 
     public HabitDTO updateHabit(Long id, Habit habitDetails) {
