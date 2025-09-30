@@ -17,8 +17,8 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 @EqualsAndHashCode
+@EntityListeners(AuditingEntityListener.class)
 public class Habit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
