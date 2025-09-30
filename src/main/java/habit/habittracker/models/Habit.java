@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,7 @@ public class Habit {
     private String description;
     private Integer frequency;
     @CreatedDate
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
     @ElementCollection
     @CollectionTable(name = "habit_completions", joinColumns = @JoinColumn(name = "habit_id"))
     @Column(name = "done_date")

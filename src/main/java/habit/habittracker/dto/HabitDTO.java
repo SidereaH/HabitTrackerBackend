@@ -9,6 +9,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,7 @@ public class HabitDTO {
     private String title;
     private String description;
     private Integer frequency;
-    private OffsetDateTime createdAt;
+    private LocalDateTime createdAt;
     private List<LocalDate> completedDates;
 
     public static HabitDTO fromEntity(Habit habit) {
