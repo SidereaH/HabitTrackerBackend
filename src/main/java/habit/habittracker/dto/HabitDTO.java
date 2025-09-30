@@ -6,8 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 @Getter
@@ -20,6 +22,7 @@ public class HabitDTO {
     private String title;
     private String description;
     private Integer frequency;
+    private OffsetDateTime createdAt;
     private List<LocalDate> completedDates;
 
     public static HabitDTO fromEntity(Habit habit) {
@@ -28,6 +31,7 @@ public class HabitDTO {
                 habit.getTitle(),
                 habit.getDescription(),
                 habit.getFrequency(),
+                habit.getCreatedAt(),
                 new ArrayList<>(habit.getCompletedDates()) // Копируем коллекцию
         );
     }
