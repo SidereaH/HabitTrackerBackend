@@ -100,7 +100,7 @@ class HabitControllerLayerTest {
         // given
         Long habitId = 1L;
         Habit habit = new Habit(habitId, "Exercise", "Daily exercise", 1, null, List.of(LocalDate.now()));
-        when(habitService.markHabitDone(habitId)).thenReturn(HabitDTO.fromEntity(habit));
+        when(habitService.markHabitDone(habitId, LocalDate.now())).thenReturn(HabitDTO.fromEntity(habit));
 
         // when & then
         mockMvc.perform(post("/habits/{id}/done", habitId))

@@ -91,7 +91,7 @@ class HabitServiceUnitTest {
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> habitService.updateHabit(habitId, new Habit()));
 
-        assertEquals("Habit not found: 999", exception.getMessage());
+        assertEquals("Not found", exception.getMessage());
         verify(habitRepository, never()).save(any());
     }
 
@@ -119,7 +119,7 @@ class HabitServiceUnitTest {
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> habitService.deleteHabit(habitId));
 
-        assertEquals("Habit not found: 999", exception.getMessage());
+        assertEquals("Not found", exception.getMessage());
         verify(habitRepository, never()).deleteById(anyLong());
     }
 
@@ -132,7 +132,7 @@ class HabitServiceUnitTest {
         when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        HabitDTO result = habitService.markHabitDone(habitId);
+        HabitDTO result = habitService.markHabitDone(habitId, LocalDate.now());
 
         // then
         assertTrue(result.getCompletedDates().contains(LocalDate.now()));
@@ -149,9 +149,9 @@ class HabitServiceUnitTest {
 
         // when & then
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> habitService.markHabitDone(habitId));
+                () -> habitService.markHabitDone(habitId, LocalDate.now()));
 
-        assertEquals("Habit not found: 999", exception.getMessage());
+        assertEquals("Not found", exception.getMessage());
         verify(habitRepository, never()).save(any());
     }
 }

@@ -60,7 +60,7 @@ class HabitHybridTest {
         habit.setCompletedDates(new ArrayList<>());
         Habit saved = habitRepository.save(habit);
 
-        HabitDTO result = habitController.markHabitDone(saved.getId());
+        HabitDTO result = habitController.markDone(saved.getId(), LocalDate.now().toString());
 
         assertEquals(1, result.getCompletedDates().size());
         assertTrue(result.getCompletedDates().contains(LocalDate.now()));

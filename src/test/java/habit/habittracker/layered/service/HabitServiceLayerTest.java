@@ -107,7 +107,7 @@ class HabitServiceLayerTest {
         Habit persisted = entityManager.persistAndFlush(habit);
 
         // when
-        HabitDTO result = habitService.markHabitDone(persisted.getId());
+        HabitDTO result = habitService.markHabitDone(persisted.getId(), LocalDate.now());
 
         // then
         assertTrue(result.getCompletedDates().contains(LocalDate.now()));
