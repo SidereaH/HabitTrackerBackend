@@ -72,9 +72,14 @@ public class HabitService {
                 : LocalDate.now();
 
         int total = dates.size();
+        int frequency = habit.getFrequency() > 0 ? habit.getFrequency() : 1;
 
         long lifetimeDays = ChronoUnit.DAYS.between(createdAtDate, LocalDate.now()) + 1;
-        double successRate = lifetimeDays > 0 ? (total * 100.0 / lifetimeDays) : 0.0;
+        double idealCompletions = (lifetimeDays / 7.0) * frequency;
+
+        double successRate = idealCompletions > 0
+                ? Math.min(100.0, (total * 100.0 / idealCompletions))
+                : 0.0;
 
         // streaks
         Collections.sort(dates);
@@ -92,7 +97,7 @@ public class HabitService {
             longest = Math.max(longest, current);
         }
 
-        // current streak (текущая серия)
+        // current streak
         int currentStreak = 0;
         LocalDate today = LocalDate.now();
         LocalDate pointer = today;
@@ -103,6 +108,7 @@ public class HabitService {
 
         return new HabitStatsDTO(habit.getId(), total, successRate, currentStreak, longest);
     }
+
 
 
 }

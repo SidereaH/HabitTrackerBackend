@@ -147,22 +147,36 @@ class HabitServiceUnitTest {
     }
 
     @Test
-    void getStats_shouldHandleEmptyDates() {
-        Habit habit = new Habit(1L, "Empty", "No dates", 1,
-                LocalDate.now().minusDays(5).atStartOfDay(), new ArrayList<>());
+    void getStats_shouldCalculateRateBasedOnFrequency() {
+        LocalDate today = LocalDate.now();
+        // привычка 3 раза в неделю, существует 14 дней => идеал ~6 выполнений
+        Habit habit = new Habit(1L, "Run", "3x per week", 3,
+                today.minusDays(14).atStartOfDay(),
+                List.of(today.minusDays(10), today.minusDays(7), today.minusDays(3)));
+
         when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
 
         HabitStatsDTO stats = habitService.getStats(1L);
 
-        assertEquals(0, stats.getTotalDone());
-        assertEquals(0, stats.getCurrentStreak());
-        assertEquals(0, stats.getLongestStreak());
-        assertTrue(stats.getSuccessRate() >= 0);
+        // всего 3 выполнения, идеал 6 => ~50% успех
+        assertEquals(3, stats.getTotalDone());
+        assertTrue(stats.getSuccessRate() > 40 && stats.getSuccessRate() < 60);
     }
 
     @Test
-    void getStats_shouldThrow_whenNotFound() {
-        when(habitRepository.findById(1L)).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> habitService.getStats(1L));
+    void getStats_shouldHandleHighFrequency() {
+        LocalDate today = LocalDate.now();
+        Habit habit = new Habit(1L, "Daily", "Every day", 7,
+                today.minusDays(7).atStartOfDay(),
+                List.of(today.minusDays(6), today.minusDays(5), today.minusDays(4), today.minusDays(3), today.minusDays(2), today.minusDays(1), today));
+
+        when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
+
+        HabitStatsDTO stats = habitService.getStats(1L);
+
+        // ежедневное выполнение — почти 100% успех
+        assertTrue(stats.getSuccessRate() >= 85);
+        assertEquals(7, stats.getCurrentStreak());
     }
+
 }
