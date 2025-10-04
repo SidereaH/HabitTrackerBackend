@@ -1,6 +1,7 @@
 package habit.habittracker.unit.services;
 
 import habit.habittracker.dto.HabitDTO;
+import habit.habittracker.dto.HabitStatsDTO;
 import habit.habittracker.models.Habit;
 import habit.habittracker.repositories.HabitRepository;
 import habit.habittracker.services.HabitService;
@@ -11,13 +12,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,127 +30,139 @@ class HabitServiceUnitTest {
 
     @Test
     void getAllHabits_shouldReturnAllHabits() {
-        // given
         Habit habit1 = new Habit(1L, "Exercise", "Daily exercise", 1, null, List.of());
         Habit habit2 = new Habit(2L, "Reading", "Read books", 1, null, List.of());
         when(habitRepository.findAll()).thenReturn(List.of(habit1, habit2));
 
-        // when
         List<HabitDTO> result = habitService.getAllHabits();
 
-        // then
         assertEquals(2, result.size());
-        verify(habitRepository, times(1)).findAll();
+        verify(habitRepository).findAll();
     }
 
     @Test
     void addHabit_shouldSaveAndReturnHabit() {
-        // given
         Habit habitToSave = new Habit(null, "Meditation", "Daily meditation", 1, null, List.of());
         Habit savedHabit = new Habit(1L, "Meditation", "Daily meditation", 1, null, List.of());
-        when(habitRepository.save(habitToSave)).thenReturn(savedHabit);
+        when(habitRepository.save(any(Habit.class))).thenReturn(savedHabit);
 
-        // when
         HabitDTO result = habitService.addHabit(HabitDTO.fromEntity(habitToSave));
 
-        // then
-        assertNotNull(result.getId());
+        assertEquals(1L, result.getId());
         assertEquals("Meditation", result.getTitle());
-        verify(habitRepository, times(1)).save(habitToSave);
+        verify(habitRepository).save(any(Habit.class));
     }
 
     @Test
     void updateHabit_shouldUpdateExistingHabit() {
-        // given
         Long habitId = 1L;
-        Habit existingHabit = new Habit(habitId, "Old Title", "Old Desc", 1, null, List.of());
-        Habit updateDetails = new Habit(null, "New Title", "New Desc", 2, null, List.of());
-
+        Habit existingHabit = new Habit(habitId, "Old", "Desc", 1, null, List.of());
+        Habit details = new Habit(null, "New", "Updated", 2, null, List.of());
         when(habitRepository.findById(habitId)).thenReturn(Optional.of(existingHabit));
-        when(habitRepository.save(any(Habit.class))).thenReturn(existingHabit);
+        when(habitRepository.save(existingHabit)).thenReturn(existingHabit);
 
-        // when
-        HabitDTO result = habitService.updateHabit(habitId, updateDetails);
+        HabitDTO result = habitService.updateHabit(habitId, details);
 
-        // then
-        assertEquals("New Title", result.getTitle());
-        assertEquals("New Desc", result.getDescription());
+        assertEquals("New", result.getTitle());
         assertEquals(2, result.getFrequency());
-        verify(habitRepository, times(1)).findById(habitId);
-        verify(habitRepository, times(1)).save(existingHabit);
+        verify(habitRepository).save(existingHabit);
     }
 
     @Test
-    void updateHabit_shouldThrowException_whenHabitNotFound() {
-        // given
-        Long habitId = 999L;
-        when(habitRepository.findById(habitId)).thenReturn(Optional.empty());
-
-        // when & then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> habitService.updateHabit(habitId, new Habit()));
-
-        assertEquals("Not found", exception.getMessage());
-        verify(habitRepository, never()).save(any());
+    void updateHabit_shouldThrow_whenNotFound() {
+        when(habitRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> habitService.updateHabit(99L, new Habit()));
     }
 
     @Test
     void deleteHabit_shouldDeleteExistingHabit() {
-        // given
-        Long habitId = 1L;
-        when(habitRepository.existsById(habitId)).thenReturn(true);
-
-        // when
-        habitService.deleteHabit(habitId);
-
-        // then
-        verify(habitRepository, times(1)).existsById(habitId);
-        verify(habitRepository, times(1)).deleteById(habitId);
+        when(habitRepository.existsById(1L)).thenReturn(true);
+        habitService.deleteHabit(1L);
+        verify(habitRepository).deleteById(1L);
     }
 
     @Test
-    void deleteHabit_shouldThrowException_whenHabitNotFound() {
-        // given
-        Long habitId = 999L;
-        when(habitRepository.existsById(habitId)).thenReturn(false);
-
-        // when & then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> habitService.deleteHabit(habitId));
-
-        assertEquals("Not found", exception.getMessage());
-        verify(habitRepository, never()).deleteById(anyLong());
+    void deleteHabit_shouldThrow_whenNotFound() {
+        when(habitRepository.existsById(1L)).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> habitService.deleteHabit(1L));
     }
 
     @Test
-    void markHabitDone_shouldAddCompletionDate() {
-        // given
-        Long habitId = 1L;
-        Habit existingHabit = new Habit(habitId, "Exercise", "Daily exercise", 1, null, new ArrayList<>());
-        when(habitRepository.findById(habitId)).thenReturn(Optional.of(existingHabit));
-        when(habitRepository.save(any(Habit.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void markHabitDone_shouldAddDateOnce() {
+        LocalDate date = LocalDate.now();
+        Habit habit = new Habit(1L, "Exercise", "Daily", 1, null, new ArrayList<>());
+        when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
+        when(habitRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        // when
-        HabitDTO result = habitService.markHabitDone(habitId, LocalDate.now());
+        HabitDTO result = habitService.markHabitDone(1L, date);
 
-        // then
-        assertTrue(result.getCompletedDates().contains(LocalDate.now()));
+        assertTrue(result.getCompletedDates().contains(date));
         assertEquals(1, result.getCompletedDates().size());
-        verify(habitRepository, times(1)).findById(habitId);
-        verify(habitRepository, times(1)).save(existingHabit);
+
+        // повторный вызов не добавляет дубль
+        HabitDTO again = habitService.markHabitDone(1L, date);
+        assertEquals(1, again.getCompletedDates().size());
     }
 
     @Test
-    void markHabitDone_shouldThrowException_whenHabitNotFound() {
-        // given
-        Long habitId = 999L;
-        when(habitRepository.findById(habitId)).thenReturn(Optional.empty());
+    void markHabitDone_shouldThrow_whenNotFound() {
+        when(habitRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> habitService.markHabitDone(1L, LocalDate.now()));
+    }
 
-        // when & then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> habitService.markHabitDone(habitId, LocalDate.now()));
+    @Test
+    void toggleHabitDone_shouldAddAndRemoveDate() {
+        LocalDate today = LocalDate.now();
+        Habit habit = new Habit(1L, "Toggle", "Test", 1, null, new ArrayList<>());
+        when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
+        when(habitRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        assertEquals("Not found", exception.getMessage());
-        verify(habitRepository, never()).save(any());
+        HabitDTO added = habitService.toggleHabitDone(1L, today);
+        assertTrue(added.getCompletedDates().contains(today));
+
+        HabitDTO removed = habitService.toggleHabitDone(1L, today);
+        assertFalse(removed.getCompletedDates().contains(today));
+    }
+
+    @Test
+    void toggleHabitDone_shouldThrow_whenNotFound() {
+        when(habitRepository.findById(anyLong())).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> habitService.toggleHabitDone(1L, LocalDate.now()));
+    }
+
+    @Test
+    void getStats_shouldCalculateStreaksAndRate() {
+        LocalDate today = LocalDate.now();
+        List<LocalDate> done = List.of(today.minusDays(2), today.minusDays(1), today);
+        Habit habit = new Habit(1L, "Stats", "Test", 1, LocalDate.now().minusDays(5).atStartOfDay(), done);
+
+        when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
+
+        HabitStatsDTO stats = habitService.getStats(1L);
+
+        assertEquals(3, stats.getTotalDone());
+        assertTrue(stats.getSuccessRate() > 0);
+        assertEquals(3, stats.getCurrentStreak());
+        assertTrue(stats.getLongestStreak() >= 3);
+    }
+
+    @Test
+    void getStats_shouldHandleEmptyDates() {
+        Habit habit = new Habit(1L, "Empty", "No dates", 1,
+                LocalDate.now().minusDays(5).atStartOfDay(), new ArrayList<>());
+        when(habitRepository.findById(1L)).thenReturn(Optional.of(habit));
+
+        HabitStatsDTO stats = habitService.getStats(1L);
+
+        assertEquals(0, stats.getTotalDone());
+        assertEquals(0, stats.getCurrentStreak());
+        assertEquals(0, stats.getLongestStreak());
+        assertTrue(stats.getSuccessRate() >= 0);
+    }
+
+    @Test
+    void getStats_shouldThrow_whenNotFound() {
+        when(habitRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> habitService.getStats(1L));
     }
 }

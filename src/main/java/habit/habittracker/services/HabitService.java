@@ -45,7 +45,7 @@ public class HabitService {
 
     public HabitDTO markHabitDone(Long id, LocalDate date) {
         Habit habit = habitRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
-        List<LocalDate> dates = habit.getCompletedDates();
+        List<LocalDate> dates = new ArrayList<>(habit.getCompletedDates()); // ✅ создаём копию
         if (!dates.contains(date)) {
             dates.add(date);
             habit.setCompletedDates(dates);
@@ -55,7 +55,7 @@ public class HabitService {
 
     public HabitDTO toggleHabitDone(Long id, LocalDate date) {
         Habit habit = habitRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
-        List<LocalDate> dates = habit.getCompletedDates();
+        List<LocalDate> dates = new ArrayList<>(habit.getCompletedDates()); // ✅ копия
         if (dates.contains(date)) dates.remove(date);
         else dates.add(date);
         habit.setCompletedDates(dates);
@@ -63,15 +63,20 @@ public class HabitService {
     }
 
     public HabitStatsDTO getStats(Long id) {
-        Habit habit = habitRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
+        Habit habit = habitRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
         List<LocalDate> dates = new ArrayList<>(habit.getCompletedDates());
-        // total done
+
+        LocalDate createdAtDate = (habit.getCreatedAt() != null)
+                ? habit.getCreatedAt().toLocalDate()
+                : LocalDate.now();
+
         int total = dates.size();
-        // successRate = doneDays / totalPossibleDaysForLifetime * 100
-        long lifetimeDays = ChronoUnit.DAYS.between(habit.getCreatedAt(), LocalDate.now()) + 1;
+
+        long lifetimeDays = ChronoUnit.DAYS.between(createdAtDate, LocalDate.now()) + 1;
         double successRate = lifetimeDays > 0 ? (total * 100.0 / lifetimeDays) : 0.0;
 
-        // compute current streak and longest streak
+        // streaks
         Collections.sort(dates);
         int longest = 0;
         int current = 0;
@@ -86,7 +91,8 @@ public class HabitService {
             prev = d;
             longest = Math.max(longest, current);
         }
-        // if the last date is not today, current streak should be calculated relative to today:
+
+        // current streak (текущая серия)
         int currentStreak = 0;
         LocalDate today = LocalDate.now();
         LocalDate pointer = today;
@@ -97,5 +103,7 @@ public class HabitService {
 
         return new HabitStatsDTO(habit.getId(), total, successRate, currentStreak, longest);
     }
+
+
 }
 

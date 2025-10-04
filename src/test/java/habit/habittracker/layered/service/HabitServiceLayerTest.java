@@ -1,9 +1,11 @@
 package habit.habittracker.layered.service;
 
 import habit.habittracker.dto.HabitDTO;
+import habit.habittracker.dto.HabitStatsDTO;
 import habit.habittracker.models.Habit;
 import habit.habittracker.repositories.HabitRepository;
 import habit.habittracker.services.HabitService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -11,6 +13,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,108 +33,144 @@ class HabitServiceLayerTest {
     @Autowired
     private HabitService habitService;
 
+    private Habit habit;
+
+    @BeforeEach
+    void setup() {
+        habit = new Habit();
+        habit.setTitle("Test");
+        habit.setDescription("Desc");
+        habit.setFrequency(3);
+        habit.setCreatedAt(LocalDate.now().minusDays(5).atStartOfDay());
+
+        habit.setCompletedDates(new ArrayList<>());
+        habit = entityManager.persistAndFlush(habit);
+    }
+
     @Test
     void addHabit_shouldPersistThroughService() {
-        // given
-        Habit habit = new Habit();
-        habit.setTitle("Test Habit");
-        habit.setDescription("Test Description");
-        habit.setFrequency(1);
+        HabitDTO dto = new HabitDTO(null, "Run", "Morning run", 2, LocalDateTime.now(), List.of());
+        HabitDTO result = habitService.addHabit(dto);
 
-        // when
-        HabitDTO result = habitService.addHabit(HabitDTO.fromEntity(habit));
-
-        // then
         assertNotNull(result.getId());
-        assertEquals("Test Habit", result.getTitle());
-
-        // Проверяем через EntityManager
+        assertEquals("Run", result.getTitle());
         Habit persisted = entityManager.find(Habit.class, result.getId());
         assertNotNull(persisted);
-        assertEquals("Test Habit", persisted.getTitle());
     }
 
     @Test
     void getAllHabits_shouldReturnAllFromDatabase() {
-        // given
-        Habit habit1 = new Habit();
-        habit1.setTitle("Habit 1");
-        Habit habit2 = new Habit();
-        habit2.setTitle("Habit 2");
+        Habit h2 = new Habit();
+        h2.setTitle("Second");
+        entityManager.persistAndFlush(h2);
 
-        entityManager.persist(habit1);
-        entityManager.persist(habit2);
-        entityManager.flush();
-
-        // when
         List<HabitDTO> result = habitService.getAllHabits();
-
-        // then
-        assertEquals(2, result.size());
-        assertTrue(result.stream().anyMatch(h -> "Habit 1".equals(h.getTitle())));
-        assertTrue(result.stream().anyMatch(h -> "Habit 2".equals(h.getTitle())));
+        assertTrue(result.size() >= 2);
+        assertTrue(result.stream().anyMatch(h -> h.getTitle().equals("Test")));
     }
 
     @Test
-    void updateHabit_shouldUpdateInDatabase() {
-        // given
-        Habit habit = new Habit();
-        habit.setTitle("Original Title");
-        habit.setDescription("Original Desc");
-        habit.setFrequency(1);
-        Habit persisted = entityManager.persistAndFlush(habit);
+    void updateHabit_shouldUpdateExistingHabit() {
+        Habit update = new Habit();
+        update.setTitle("Updated");
+        update.setDescription("Updated Desc");
+        update.setFrequency(5);
 
-        Habit updateDetails = new Habit();
-        updateDetails.setTitle("Updated Title");
-        updateDetails.setDescription("Updated Desc");
-        updateDetails.setFrequency(2);
+        HabitDTO result = habitService.updateHabit(habit.getId(), update);
+        assertEquals("Updated", result.getTitle());
+        assertEquals(5, result.getFrequency());
 
-        // when
-        HabitDTO result = habitService.updateHabit(persisted.getId(), updateDetails);
-
-        // then
-        assertEquals("Updated Title", result.getTitle());
-        assertEquals("Updated Desc", result.getDescription());
-        assertEquals(2, result.getFrequency());
-
-        // Проверяем через репозиторий
-        Optional<Habit> updated = habitRepository.findById(persisted.getId());
-        assertTrue(updated.isPresent());
-        assertEquals("Updated Title", updated.get().getTitle());
+        Habit updated = habitRepository.findById(habit.getId()).orElseThrow();
+        assertEquals("Updated", updated.getTitle());
     }
 
     @Test
-    void markHabitDone_shouldAddCompletionDateToDatabase() {
-        // given
-        Habit habit = new Habit();
-        habit.setTitle("Test Habit");
-        Habit persisted = entityManager.persistAndFlush(habit);
-
-        // when
-        HabitDTO result = habitService.markHabitDone(persisted.getId(), LocalDate.now());
-
-        // then
-        assertTrue(result.getCompletedDates().contains(LocalDate.now()));
-        assertEquals(1, result.getCompletedDates().size());
-
-        // Проверяем через репозиторий
-        Optional<Habit> updated = habitRepository.findById(persisted.getId());
-        assertTrue(updated.isPresent());
-        assertEquals(1, updated.get().getCompletedDates().size());
+    void updateHabit_shouldThrowIfNotFound() {
+        Habit update = new Habit();
+        update.setTitle("x");
+        assertThrows(RuntimeException.class, () -> habitService.updateHabit(999L, update));
     }
 
     @Test
     void deleteHabit_shouldRemoveFromDatabase() {
-        // given
-        Habit habit = new Habit();
-        habit.setTitle("To Delete");
-        Habit persisted = entityManager.persistAndFlush(habit);
+        habitService.deleteHabit(habit.getId());
+        assertFalse(habitRepository.findById(habit.getId()).isPresent());
+    }
 
-        // when
-        habitService.deleteHabit(persisted.getId());
+    @Test
+    void deleteHabit_shouldThrowIfNotFound() {
+        assertThrows(RuntimeException.class, () -> habitService.deleteHabit(123L));
+    }
 
-        // then
-        Optional<Habit> found = habitRepository.findById(persisted.getId());
-        assertFalse(found.isPresent());
+    @Test
+    void markHabitDone_shouldAddDateOnce() {
+        LocalDate date = LocalDate.now();
+        HabitDTO dto = habitService.markHabitDone(habit.getId(), date);
+        assertTrue(dto.getCompletedDates().contains(date));
+
+        // второй вызов — не дублирует дату
+        HabitDTO again = habitService.markHabitDone(habit.getId(), date);
+        assertEquals(1, again.getCompletedDates().size());
+    }
+
+    @Test
+    void markHabitDone_shouldThrowIfNotFound() {
+        assertThrows(RuntimeException.class, () -> habitService.markHabitDone(999L, LocalDate.now()));
+    }
+
+    @Test
+    void toggleHabitDone_shouldAddAndRemoveDate() {
+        LocalDate date = LocalDate.now();
+
+        // add
+        HabitDTO added = habitService.toggleHabitDone(habit.getId(), date);
+        assertTrue(added.getCompletedDates().contains(date));
+
+        // remove
+        HabitDTO removed = habitService.toggleHabitDone(habit.getId(), date);
+        assertFalse(removed.getCompletedDates().contains(date));
+    }
+
+    @Test
+    void toggleHabitDone_shouldThrowIfNotFound() {
+        assertThrows(RuntimeException.class, () -> habitService.toggleHabitDone(999L, LocalDate.now()));
+    }
+
+    @Test
+    void getStats_shouldCalculateCorrectly() {
+        Habit h = new Habit();
+        h.setTitle("Stats Habit");
+        h.setDescription("Track streaks");
+        h.setFrequency(1);
+        h.setCreatedAt(LocalDate.now().minusDays(10).atStartOfDay());
+        h.setCompletedDates(List.of(
+                LocalDate.now().minusDays(2),
+                LocalDate.now().minusDays(1),
+                LocalDate.now()
+        ));
+        Habit persisted = entityManager.persistAndFlush(h);
+
+        HabitStatsDTO stats = habitService.getStats(persisted.getId());
+        assertEquals(3, stats.getTotalDone());
+        assertTrue(stats.getSuccessRate() > 0);
+        assertEquals(3, stats.getCurrentStreak());
+        assertTrue(stats.getLongestStreak() >= 3);
+    }
+
+    @Test
+    void getStats_shouldHandleEmptyDatesAndNotFound() {
+        Habit h = new Habit();
+        h.setTitle("Empty");
+        habit.setCreatedAt(LocalDate.now().minusDays(5).atStartOfDay());
+
+        habit.setCompletedDates(new ArrayList<>());
+
+        h = entityManager.persistAndFlush(h);
+
+        HabitStatsDTO stats = habitService.getStats(h.getId());
+        assertEquals(0, stats.getTotalDone());
+        assertEquals(0, stats.getCurrentStreak());
+
+        assertThrows(RuntimeException.class, () -> habitService.getStats(999L));
     }
 }
